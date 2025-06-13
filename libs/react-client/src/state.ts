@@ -1,5 +1,5 @@
 import { isEqual } from 'lodash';
-import { AtomEffect, DefaultValue, atom, selector } from 'recoil';
+import { DefaultValue, atom, selector } from 'recoil';
 import { Socket } from 'socket.io-client';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -11,7 +11,6 @@ import {
   IAuthConfig,
   ICallFn,
   IChainlitConfig,
-  IMcp,
   IMessageElement,
   IStep,
   ITasklistElement,
@@ -20,7 +19,6 @@ import {
 } from './types';
 import { groupByDate } from './utils/group';
 import { WavRecorder, WavStreamPlayer } from './wavtools';
-import { ChainlitAPI } from './api';
 
 export interface ISession {
   socket: Socket;
@@ -216,45 +214,4 @@ export const currentThreadIdState = atom<string | undefined>({
   default: undefined
 });
 
-
-
-// Simple localStorage-only effect for MCP storage
-// The database operations will be handled by a custom hook
-const localStorageEffect: AtomEffect<IMcp[]> = ({ setSelf, onSet }) => {
-  console.log('[debug MCP] MCP localStorage effect initialized');
-  
-  // Load from localStorage on initialization
-  try {
-    const savedValue = localStorage.getItem('mcp_storage_key');
-    if (savedValue) {
-      const parsedValue = JSON.parse(savedValue);
-      if (Array.isArray(parsedValue)) {
-        console.log('[debug MCP] Loading initial data from localStorage:', parsedValue);
-        setSelf(parsedValue);
-      }
-    }
-  } catch (error) {
-    console.log('[debug MCP] Error loading from localStorage:', error);
-  }
-
-  // Save to localStorage on changes
-  onSet((newValue, _, isReset) => {
-    console.log('[debug MCP] Saving to localStorage:', { newValue, isReset });
-    try {
-      if (isReset) {
-        localStorage.removeItem('mcp_storage_key');
-      } else {
-        localStorage.setItem('mcp_storage_key', JSON.stringify(newValue));
-      }
-    } catch (error) {
-      console.log('[debug MCP] Error saving to localStorage:', error);
-    }
-  });
-};
-
-// MCP state atom with localStorage syncing
-export const mcpState = atom<IMcp[]>({
-  key: 'Mcp',
-  default: [],
-  effects: [localStorageEffect]
-});
+// MCP state is now managed by McpStorageManager - no Recoil atom needed

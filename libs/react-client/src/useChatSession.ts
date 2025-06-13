@@ -50,10 +50,10 @@ import {
 } from 'src/utils/message';
 
 import { OutputAudioChunk } from './types/audio';
-import { useMcpStorage } from './useMcpStorage';
 
 import { ChainlitContext } from './context';
 import type { IToken } from './useChatData';
+import { useMcpStorage } from './useMcpStorage';
 
 const useChatSession = () => {
   const client = useContext(ChainlitContext);
@@ -137,43 +137,47 @@ const useChatSession = () => {
       socket.on('connect', () => {
         socket.emit('connection_successful');
         setSession((s) => ({ ...s!, error: false }));
-        updateMcpStorage(
-          mcpData.map((mcp) => {
-            const promise =
-              mcp.clientType === 'sse'
-                ? client.connectSseMCP(sessionId, mcp.name, mcp.url!)
-                : client.connectStdioMCP(sessionId, mcp.name, mcp.command!);
-            promise
-              .then(async ({ success, mcp }) => {
-                updateMcpStorage((prev) =>
-                  prev.map((existingMcp) => {
-                    if (existingMcp.name === mcp.name) {
-                      return {
-                        ...existingMcp,
-                        status: success ? 'connected' : 'failed',
-                        tools: mcp ? mcp.tools : existingMcp.tools
-                      };
-                    }
-                    return existingMcp;
-                  })
-                );
-              })
-              .catch(() => {
-                updateMcpStorage((prev) =>
-                  prev.map((existingMcp) => {
-                    if (existingMcp.name === mcp.name) {
-                      return {
-                        ...existingMcp,
-                        status: 'failed'
-                      };
-                    }
-                    return existingMcp;
-                  })
-                );
-              });
-            return { ...mcp, status: 'connecting' };
-          })
-        );
+
+        // Only update MCP storage if there's data to process
+        if (mcpData.length > 0) {
+          updateMcpStorage(
+            mcpData.map((mcp) => {
+              const promise =
+                mcp.clientType === 'sse'
+                  ? client.connectSseMCP(sessionId, mcp.name, mcp.url!)
+                  : client.connectStdioMCP(sessionId, mcp.name, mcp.command!);
+              promise
+                .then(async ({ success, mcp }) => {
+                  updateMcpStorage((prev) =>
+                    prev.map((existingMcp) => {
+                      if (existingMcp.name === mcp.name) {
+                        return {
+                          ...existingMcp,
+                          status: success ? 'connected' : 'failed',
+                          tools: mcp ? mcp.tools : existingMcp.tools
+                        };
+                      }
+                      return existingMcp;
+                    })
+                  );
+                })
+                .catch(() => {
+                  updateMcpStorage((prev) =>
+                    prev.map((existingMcp) => {
+                      if (existingMcp.name === mcp.name) {
+                        return {
+                          ...existingMcp,
+                          status: 'failed'
+                        };
+                      }
+                      return existingMcp;
+                    })
+                  );
+                });
+              return { ...mcp, status: 'connecting' };
+            })
+          );
+        }
       });
 
       socket.on('connect_error', (_) => {

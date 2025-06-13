@@ -1,16 +1,11 @@
 import { cn } from '@/lib/utils';
 import { Link, RefreshCw, SquareTerminal, Trash2, Wrench } from 'lucide-react';
 import { useContext, useState } from 'react';
-import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil';
+import { useRecoilValue } from 'recoil';
 import { toast } from 'sonner';
-import { useConfig, useMcpStorage } from '@chainlit/react-client';
 
-import {
-  ChainlitContext,
-  IMcp,
-  mcpState,
-  sessionIdState
-} from '@chainlit/react-client';
+import { useMcpStorage } from '@chainlit/react-client';
+import { ChainlitContext, IMcp, sessionIdState } from '@chainlit/react-client';
 
 import CopyButton from '@/components/CopyButton';
 import {
@@ -35,8 +30,8 @@ interface McpListProps {
 export const McpList = ({ onAddNewClick }: McpListProps) => {
   const apiClient = useContext(ChainlitContext);
   const sessionId = useRecoilValue(sessionIdState);
-  const [mcps, setMcps] = useRecoilState(mcpState);
   const [isLoading, setIsLoading] = useState(false);
+  const { mcpData: mcps, updateMcpStorage } = useMcpStorage();
 
   const deleteMcp = (mcp: IMcp) => {
     if (mcp.status === 'connected') {
@@ -55,7 +50,7 @@ export const McpList = ({ onAddNewClick }: McpListProps) => {
       );
     }
 
-    setMcps((prev) => prev.filter((_mcp) => _mcp.name !== mcp.name));
+    updateMcpStorage((prev) => prev.filter((_mcp) => _mcp.name !== mcp.name));
   };
 
   if (!mcps || mcps.length === 0) {
@@ -253,9 +248,7 @@ const ReconnectMcpButton = ({ mcp }: { mcp: IMcp }) => {
       disabled={isLoading || mcp.status === 'connecting'}
       className="text-muted-foreground hover:text-foreground"
     >
-      <RefreshCw
-        className={cn('h-4 w-4', isLoading && 'animate-spin')}
-      />
+      <RefreshCw className={cn('h-4 w-4', isLoading && 'animate-spin')} />
     </Button>
   );
 };
