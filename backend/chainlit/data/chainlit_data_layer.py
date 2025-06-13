@@ -76,11 +76,24 @@ class ChainlitDataLayer(BaseDataLayer):
             return None
         row = result[0]
 
+        # Parse mcpStorage - handle both old format (list) and new format (dict with data key)
+        mcp_storage_raw = row.get("mcpStorage", "[]")
+        if mcp_storage_raw:
+            mcp_storage_parsed = json.loads(mcp_storage_raw)
+            # If it's a dict with 'data' key, extract the data array
+            if isinstance(mcp_storage_parsed, dict) and 'data' in mcp_storage_parsed:
+                mcp_storage = mcp_storage_parsed['data']
+            else:
+                mcp_storage = mcp_storage_parsed
+        else:
+            mcp_storage = []
+
         return PersistedUser(
             id=str(row.get("id")),
             identifier=str(row.get("identifier")),
             createdAt=row.get("createdAt").isoformat(),  # type: ignore
             metadata=json.loads(row.get("metadata", "{}")),
+            mcpStorage=mcp_storage,
         )
 
     async def create_user(self, user: User) -> Optional[PersistedUser]:
@@ -108,6 +121,17 @@ class ChainlitDataLayer(BaseDataLayer):
             createdAt=row.get("createdAt").isoformat(),  # type: ignore
             metadata=json.loads(row.get("metadata", "{}")),
         )
+
+    async def update_user_mcp_storage(self, user_identifier: str, mcp_data: list) -> None:
+        """Update user's MCP storage data"""
+        query = """
+        UPDATE "User" SET "mcpStorage" = $1 WHERE identifier = $2
+        """
+        params = {
+            "mcp_data": json.dumps(mcp_data),
+            "identifier": user_identifier,
+        }
+        await self.execute_query(query, params)
 
     async def delete_feedback(self, feedback_id: str) -> bool:
         query = """

@@ -3,6 +3,7 @@ import { Link, RefreshCw, SquareTerminal, Trash2, Wrench } from 'lucide-react';
 import { useContext, useState } from 'react';
 import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil';
 import { toast } from 'sonner';
+import { useConfig, useMcpStorage } from '@chainlit/react-client';
 
 import {
   ChainlitContext,
@@ -188,14 +189,14 @@ const DeleteMcpButton = ({ mcp, onDelete, disabled }: DeleteMcpButtonProps) => {
 
 const ReconnectMcpButton = ({ mcp }: { mcp: IMcp }) => {
   const apiClient = useContext(ChainlitContext);
-  const setMcps = useSetRecoilState(mcpState);
+  const { updateMcpStorage } = useMcpStorage();
   const sessionId = useRecoilValue(sessionIdState);
   const [isLoading, setIsLoading] = useState(false);
 
   const reconnectMcp = () => {
     setIsLoading(true);
 
-    setMcps((prev) =>
+    updateMcpStorage((prev) =>
       prev.map((existingMcp) => {
         if (existingMcp.name === mcp.name) {
           return {
@@ -208,7 +209,7 @@ const ReconnectMcpButton = ({ mcp }: { mcp: IMcp }) => {
     );
 
     const updateMcpStatus = (success: boolean, updatedMcp?: any) => {
-      setMcps((prev) =>
+      updateMcpStorage((prev) =>
         prev.map((existingMcp) => {
           if (existingMcp.name === mcp.name) {
             return {
@@ -222,51 +223,39 @@ const ReconnectMcpButton = ({ mcp }: { mcp: IMcp }) => {
       );
     };
 
-    if (mcp.clientType === 'stdio') {
-      toast.promise(
-        apiClient
-          .connectStdioMCP(sessionId, mcp.name, mcp.command!)
-          .then(async ({ success, mcp: updatedMcp }) => {
-            updateMcpStatus(success, updatedMcp);
-          })
-          .catch(() => {
-            updateMcpStatus(false);
-          })
-          .finally(() => setIsLoading(false)),
-        {
-          loading: 'Reconnecting MCP...',
-          success: () => 'MCP reconnected!',
-          error: (err) => <span>{err.message}</span>
-        }
-      );
-    } else {
-      toast.promise(
-        apiClient
-          .connectSseMCP(sessionId, mcp.name, mcp.url!)
-          .then(async ({ success, mcp: updatedMcp }) => {
-            updateMcpStatus(success, updatedMcp);
-          })
-          .catch(() => {
-            updateMcpStatus(false);
-          })
-          .finally(() => setIsLoading(false)),
-        {
-          loading: 'Reconnecting MCP...',
-          success: () => 'MCP reconnected!',
-          error: (err) => <span>{err.message}</span>
-        }
-      );
-    }
+    const promise =
+      mcp.clientType === 'sse'
+        ? apiClient.connectSseMCP(sessionId, mcp.name, mcp.url!)
+        : apiClient.connectStdioMCP(sessionId, mcp.name, mcp.command!);
+
+    toast.promise(
+      promise
+        .then(async ({ success, mcp }) => {
+          updateMcpStatus(success, mcp);
+        })
+        .catch(() => {
+          updateMcpStatus(false);
+        })
+        .finally(() => setIsLoading(false)),
+      {
+        loading: 'Reconnecting MCP...',
+        success: () => 'MCP reconnected!',
+        error: (err) => <span>{err.message}</span>
+      }
+    );
   };
 
   return (
     <Button
       variant="ghost"
       size="icon"
-      disabled={isLoading}
       onClick={reconnectMcp}
+      disabled={isLoading || mcp.status === 'connecting'}
+      className="text-muted-foreground hover:text-foreground"
     >
-      <RefreshCw className="h-4 w-4" />
+      <RefreshCw
+        className={cn('h-4 w-4', isLoading && 'animate-spin')}
+      />
     </Button>
   );
 };

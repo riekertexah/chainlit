@@ -1482,6 +1482,43 @@ def status_check():
     return {"message": "Site is operational"}
 
 
+@router.get("/mcp/storage")
+async def get_mcp_storage(current_user: UserParam):
+    """Get MCP storage data for authenticated user."""
+    data_layer = get_data_layer()
+    if not data_layer:
+        raise HTTPException(status_code=400, detail="Data persistence is not enabled")
+    
+    if not current_user:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    
+    try:
+        user = await data_layer.get_user(current_user.identifier)
+        if user and hasattr(user, 'mcpStorage'):
+            return user.mcpStorage or []
+        return []
+    except Exception as e:
+        logger.error(f"Error getting MCP storage: {e}")
+        raise HTTPException(status_code=500, detail="Database error")
+
+@router.post("/mcp/storage")
+async def update_mcp_storage(current_user: UserParam, mcp_data: List[dict]):
+    """Update MCP storage data for authenticated user."""
+    data_layer = get_data_layer()
+    if not data_layer:
+        raise HTTPException(status_code=400, detail="Data persistence is not enabled")
+    
+    if not current_user:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    
+    try:
+        await data_layer.update_user_mcp_storage(current_user.identifier, mcp_data)
+        return {"success": True}
+    except Exception as e:
+        logger.error(f"Error updating MCP storage: {e}")
+        raise HTTPException(status_code=500, detail="Database error")
+
+
 @router.get("/{full_path:path}")
 async def serve(request: Request):
     """Serve the UI files."""

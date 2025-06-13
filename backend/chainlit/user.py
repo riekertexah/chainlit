@@ -1,4 +1,4 @@
-from typing import Dict, Literal, Optional, TypedDict
+from typing import Dict, List, Literal, Optional, TypedDict
 
 from dataclasses_json import DataClassJsonMixin
 from pydantic import Field
@@ -40,4 +40,4 @@ class PersistedUserFields:
 
 @dataclass
 class PersistedUser(User, PersistedUserFields):
-    pass
+    mcpStorage: Optional[List] = Field(default_factory=list)

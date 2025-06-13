@@ -215,34 +215,94 @@ export const currentThreadIdState = atom<string | undefined>({
   default: undefined
 });
 
-const localStorageEffect =
-  <T>(key: string): AtomEffect<T> =>
-  ({ setSelf, onSet }) => {
-    // When the atom is first initialized, try to get its value from localStorage
-    const savedValue = localStorage.getItem(key);
-    if (savedValue != null) {
-      try {
-        setSelf(JSON.parse(savedValue));
-      } catch (error) {
-        console.error(
-          `Error parsing localStorage value for key "${key}":`,
-          error
-        );
+// Smart localStorage effect that only syncs when database persistence is disabled
+const smartLocalStorageEffect: AtomEffect<IMcp[]> = ({ setSelf, onSet, getPromise }) => {
+  console.log('[debug MCP] MCP atom effect initialized');
+  
+  // Load from localStorage on initialization if dataPersistence is false
+  const initializeFromLocalStorage = async () => {
+    try {
+      const config = await getPromise(configState);
+      console.log('[debug MCP] Initial config check:', { dataPersistence: config?.dataPersistence });
+      
+      if (!config?.dataPersistence) {
+        console.log('[debug MCP] DataPersistence is false, loading from localStorage on init');
+        const savedValue = localStorage.getItem('mcp_storage_key');
+        if (savedValue) {
+          try {
+            const parsedValue = JSON.parse(savedValue);
+            if (Array.isArray(parsedValue)) {
+              console.log('[debug MCP] Setting initial data from localStorage:', parsedValue);
+              setSelf(parsedValue);
+            }
+          } catch (error) {
+            console.log('[debug MCP] Error parsing localStorage on init:', error);
+          }
+        } else {
+          console.log('[debug MCP] No localStorage data found on init');
+        }
+      } else {
+        console.log('[debug MCP] DataPersistence is true, skipping localStorage init');
+      }
+    } catch (error) {
+      console.log('[debug MCP] Error getting config on init, trying localStorage anyway:', error);
+      const savedValue = localStorage.getItem('mcp_storage_key');
+      if (savedValue) {
+        try {
+          const parsedValue = JSON.parse(savedValue);
+          if (Array.isArray(parsedValue)) {
+            console.log('[debug MCP] Setting initial data from localStorage (fallback):', parsedValue);
+            setSelf(parsedValue);
+          }
+        } catch (error) {
+          console.log('[debug MCP] Error parsing localStorage on init (fallback):', error);
+        }
       }
     }
-
-    // Subscribe to state changes and update localStorage
-    onSet((newValue, _, isReset) => {
-      if (isReset) {
-        localStorage.removeItem(key);
-      } else {
-        localStorage.setItem(key, JSON.stringify(newValue));
-      }
-    });
   };
+  
+  // Initialize from localStorage
+  initializeFromLocalStorage();
+  
+  // Subscribe to state changes and conditionally update localStorage
+  onSet(async (newValue, _, isReset) => {
+    console.log('[debug MCP] MCP atom onSet triggered:', { newValue, isReset });
+    
+    try {
+      // Get the current config to check dataPersistence
+      const config = await getPromise(configState);
+      console.log('[debug MCP] Config retrieved in atom effect:', { dataPersistence: config?.dataPersistence });
+      
+      // Only sync to localStorage if dataPersistence is false
+      if (!config?.dataPersistence) {
+        console.log('[debug MCP] DataPersistence is false, syncing to localStorage');
+        if (isReset) {
+          localStorage.removeItem('mcp_storage_key');
+          console.log('[debug MCP] Removed mcp_storage_key from localStorage');
+        } else {
+          localStorage.setItem('mcp_storage_key', JSON.stringify(newValue));
+          console.log('[debug MCP] Saved to localStorage:', newValue);
+        }
+      } else {
+        console.log('[debug MCP] DataPersistence is true, skipping localStorage sync');
+      }
+    } catch (error) {
+      console.log('[debug MCP] Error getting config in atom effect, defaulting to localStorage sync:', error);
+      // If we can't get config, err on the side of saving to localStorage
+      if (isReset) {
+        localStorage.removeItem('mcp_storage_key');
+        console.log('[debug MCP] Removed mcp_storage_key from localStorage (fallback)');
+      } else {
+        localStorage.setItem('mcp_storage_key', JSON.stringify(newValue));
+        console.log('[debug MCP] Saved to localStorage (fallback):', newValue);
+      }
+    }
+  });
+};
 
+// MCP state atom with smart localStorage syncing
 export const mcpState = atom<IMcp[]>({
   key: 'Mcp',
   default: [],
-  effects: [localStorageEffect<IMcp[]>('mcp_storage_key')]
+  effects: [smartLocalStorageEffect]
 });

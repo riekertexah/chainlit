@@ -189,6 +189,18 @@ class SQLAlchemyDataLayer(BaseDataLayer):
             )  # We want to update the metadata
         return await self.get_user(user.identifier)
 
+    async def update_user_mcp_storage(self, user_identifier: str, mcp_data: list) -> None:
+        """Update user's MCP storage data"""
+        if self.show_logger:
+            logger.info(f"SQLAlchemy: update_user_mcp_storage, user_identifier={user_identifier}")
+        
+        query = """UPDATE users SET "mcpStorage" = :mcp_data WHERE "identifier" = :identifier"""
+        parameters = {
+            "identifier": user_identifier,
+            "mcp_data": json.dumps(mcp_data)
+        }
+        await self.execute_sql(query=query, parameters=parameters)
+
     ###### Threads ######
     async def get_thread_author(self, thread_id: str) -> str:
         if self.show_logger:

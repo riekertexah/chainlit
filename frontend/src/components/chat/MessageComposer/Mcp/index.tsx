@@ -1,8 +1,7 @@
 import { Plug } from 'lucide-react';
 import { useState } from 'react';
-import { useRecoilState } from 'recoil';
 
-import { mcpState, useConfig } from '@chainlit/react-client';
+import { useConfig, useMcpStorage } from '@chainlit/react-client';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -30,7 +29,7 @@ interface Props {
 
 const McpButton = ({ disabled }: Props) => {
   const { config } = useConfig();
-  const [mcps] = useRecoilState(mcpState);
+  const { mcpData } = useMcpStorage();
 
   const [open, setOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('add');
@@ -41,9 +40,9 @@ const McpButton = ({ disabled }: Props) => {
 
   if (!allowMcp || (!allowSse && !allowStdio)) return null;
 
-  const connectedMcps = mcps.filter((mcp) => mcp.status === 'connected');
+  const connectedMcps = mcpData.filter((mcp) => mcp.status === 'connected');
 
-  const mcpLoading = mcps.find((mcp) => mcp.status === 'connecting');
+  const mcpLoading = mcpData.find((mcp) => mcp.status === 'connecting');
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>

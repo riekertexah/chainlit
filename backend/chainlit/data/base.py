@@ -105,3 +105,7 @@ class BaseDataLayer(ABC):
     @abstractmethod
     async def build_debug_url(self) -> str:
         pass
+
+    @abstractmethod
+    async def update_user_mcp_storage(self, user_identifier: str, mcp_data: list) -> None:
+        pass

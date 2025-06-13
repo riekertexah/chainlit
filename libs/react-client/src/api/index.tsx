@@ -336,6 +336,16 @@ export class ChainlitAPI extends APIBase {
     return res.json();
   }
 
+  async getMcpStorage() {
+    const res = await this.get(`/mcp/storage`);
+    return res.json();
+  }
+
+  async updateMcpStorage(mcpData: any[]) {
+    const res = await this.post(`/mcp/storage`, mcpData);
+    return res.json();
+  }
+
   getElementUrl(id: string, sessionId: string) {
     const queryParams = `?session_id=${sessionId}`;
     return this.buildEndpoint(`/project/file/${id}${queryParams}`);
@@ -349,4 +359,6 @@ export class ChainlitAPI extends APIBase {
   getOAuthEndpoint(provider: string) {
     return this.buildEndpoint(`/auth/oauth/${provider}`);
   }
+
+  
 }

@@ -1,11 +1,11 @@
 import { useContext, useState } from 'react';
-import { useRecoilValue, useSetRecoilState } from 'recoil';
+import { useRecoilValue } from 'recoil';
 import { toast } from 'sonner';
 
 import {
   ChainlitContext,
-  mcpState,
-  sessionIdState
+  sessionIdState,
+  useMcpStorage
 } from '@chainlit/react-client';
 
 import { Button } from '@/components/ui/button';
@@ -35,7 +35,7 @@ export const McpAddForm = ({
 }: McpAddFormProps) => {
   const apiClient = useContext(ChainlitContext);
   const sessionId = useRecoilValue(sessionIdState);
-  const setMcps = useSetRecoilState(mcpState);
+  const { updateMcpStorage } = useMcpStorage();
 
   const [serverName, setServerName] = useState('');
   const [serverType, setServerType] = useState<'stdio' | 'sse'>(
@@ -72,7 +72,7 @@ export const McpAddForm = ({
           .connectStdioMCP(sessionId, serverName, serverCommand)
           .then(async ({ success, mcp }) => {
             if (success && mcp) {
-              setMcps((prev) => [...prev, { ...mcp, status: 'connected' }]);
+              updateMcpStorage((prev) => [...prev, { ...mcp, status: 'connected' }]);
             }
             resetForm();
             onSuccess();
@@ -90,7 +90,7 @@ export const McpAddForm = ({
           .connectSseMCP(sessionId, serverName, serverUrl)
           .then(async ({ success, mcp }) => {
             if (success && mcp) {
-              setMcps((prev) => [...prev, { ...mcp, status: 'connected' }]);
+              updateMcpStorage((prev) => [...prev, { ...mcp, status: 'connected' }]);
             }
             resetForm();
             onSuccess();

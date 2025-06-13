@@ -22,7 +22,6 @@ import {
   firstUserInteraction,
   isAiSpeakingState,
   loadingState,
-  mcpState,
   messagesState,
   resumeThreadErrorState,
   sessionIdState,
@@ -51,6 +50,7 @@ import {
 } from 'src/utils/message';
 
 import { OutputAudioChunk } from './types/audio';
+import { useMcpStorage } from './useMcpStorage';
 
 import { ChainlitContext } from './context';
 import type { IToken } from './useChatData';
@@ -58,6 +58,7 @@ import type { IToken } from './useChatData';
 const useChatSession = () => {
   const client = useContext(ChainlitContext);
   const sessionId = useRecoilValue(sessionIdState);
+  const { mcpData, updateMcpStorage } = useMcpStorage();
 
   const [session, setSession] = useRecoilState(sessionState);
   const setIsAiSpeaking = useSetRecoilState(isAiSpeakingState);
@@ -66,7 +67,6 @@ const useChatSession = () => {
   const setChatSettingsValue = useSetRecoilState(chatSettingsValueState);
   const setFirstUserInteraction = useSetRecoilState(firstUserInteraction);
   const setLoading = useSetRecoilState(loadingState);
-  const setMcps = useSetRecoilState(mcpState);
   const wavStreamPlayer = useRecoilValue(wavStreamPlayerState);
   const wavRecorder = useRecoilValue(wavRecorderState);
   const setMessages = useSetRecoilState(messagesState);
@@ -137,15 +137,15 @@ const useChatSession = () => {
       socket.on('connect', () => {
         socket.emit('connection_successful');
         setSession((s) => ({ ...s!, error: false }));
-        setMcps((prev) =>
-          prev.map((mcp) => {
+        updateMcpStorage(
+          mcpData.map((mcp) => {
             const promise =
               mcp.clientType === 'sse'
                 ? client.connectSseMCP(sessionId, mcp.name, mcp.url!)
                 : client.connectStdioMCP(sessionId, mcp.name, mcp.command!);
             promise
               .then(async ({ success, mcp }) => {
-                setMcps((prev) =>
+                updateMcpStorage((prev) =>
                   prev.map((existingMcp) => {
                     if (existingMcp.name === mcp.name) {
                       return {
@@ -159,7 +159,7 @@ const useChatSession = () => {
                 );
               })
               .catch(() => {
-                setMcps((prev) =>
+                updateMcpStorage((prev) =>
                   prev.map((existingMcp) => {
                     if (existingMcp.name === mcp.name) {
                       return {
