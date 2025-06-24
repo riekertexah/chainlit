@@ -15,6 +15,9 @@ dist_embed
 dist-ssr
 *.local
 
+# Vite build artifacts
+vite.config.ts.timestamp-*.mjs
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
