@@ -1,0 +1,29 @@
+name: Build Python Wheel
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-wheel:
+    runs-on: ubuntu-latest
+    env:
+      BACKEND_DIR: ./backend
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+      - name: Install Poetry
+        run: pip install poetry
+      - name: Install dependencies
+        run: poetry install --no-interaction --no-root
+        working-directory: ${{ env.BACKEND_DIR }}
+      - name: Build wheel
+        run: poetry build -f wheel
+        working-directory: ${{ env.BACKEND_DIR }}
+      - name: Upload wheel artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: lit-chainlit-wheel
+          path: backend/dist/*.whl 
