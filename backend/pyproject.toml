@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "chainlit"
-version = "0.0.1"
+version = "2.5.5-LC"
 keywords = [
     'LLM',
     'Agents',
