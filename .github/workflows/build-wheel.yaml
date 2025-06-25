@@ -23,12 +23,21 @@ jobs:
       - name: Install dependencies
         run: poetry install --no-interaction --no-root
         working-directory: ${{ env.BACKEND_DIR }}
-      - name: Build wheel with specific platform
+      - name: Build universal wheel
         run: |
+          # Temporarily remove build script to force universal wheel
+          cp pyproject.toml pyproject.toml.backup
+          sed -i '/\[tool.poetry.build\]/,+1d' pyproject.toml
+          
+          # Build the wheel (should now be universal)
           poetry build -f wheel
-          # Ensure the wheel is built for manylinux
-          # python -m pip install auditwheel
-          # auditwheel repair dist/*.whl --plat manylinux_2_39_x86_64
+          
+          # Restore original pyproject.toml
+          mv pyproject.toml.backup pyproject.toml
+          
+          # Check what was built
+          ls -la dist/
+          echo "Wheel built successfully!"
         working-directory: ${{ env.BACKEND_DIR }}
       - name: Upload wheel artifact
         uses: actions/upload-artifact@v4
