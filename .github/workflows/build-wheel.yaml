@@ -23,21 +23,23 @@ jobs:
       - name: Install dependencies
         run: poetry install --no-interaction --no-root
         working-directory: ${{ env.BACKEND_DIR }}
+      - name: Build frontend assets
+        run: |
+          # Build the frontend assets first
+          python build.py
+        working-directory: ${{ env.BACKEND_DIR }}
       - name: Build universal wheel
         run: |
-          # Temporarily remove build script to force universal wheel
-          cp pyproject.toml pyproject.toml.backup
-          sed -i '/\[tool.poetry.build\]/,+1d' pyproject.toml
-          
-          # Build the wheel (should now be universal)
+          # Temporarily disable the build script and build universal wheel
+          sed -i.bak '/\[tool.poetry.build\]/,+1d' pyproject.toml
           poetry build -f wheel
           
-          # Restore original pyproject.toml
-          mv pyproject.toml.backup pyproject.toml
+          # Restore the build script
+          mv pyproject.toml.bak pyproject.toml
           
           # Check what was built
           ls -la dist/
-          echo "Wheel built successfully!"
+          echo "Universal wheel built successfully!"
         working-directory: ${{ env.BACKEND_DIR }}
       - name: Upload wheel artifact
         uses: actions/upload-artifact@v4
